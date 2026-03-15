@@ -13,7 +13,7 @@ def mount_usb():
     if not os.path.exists(mount_point):
         os.mkdirs(mount_point)
 
-    if os.path.ismount(mount_point)
+    if os.path.ismount(mount_point):
         print(f"[!] {mount_point} is already mounted.")
         return True
     
@@ -38,3 +38,22 @@ def browse_images():
         return
     
     print(f"[-] Found {len(images)} images.")
+    for idx, img in enumerate(images):
+        print(f"\n[{idx}] Viewing: {img}")
+        subprocess.run(["timg", "-g100x100", img])
+
+        choice = input("\nPress Enter for next, 'q' to quit: ")
+        if choice.lower() == 'q':
+            break
+
+def unmount_drive():
+    print(f"[*] Unmounting {mount_point}...")
+    run_cmd(f"sudo umount {mount_point}")
+    print("[+] Safe to remove drive.")
+
+if __name__ == "__main__":
+    if mount_usb():
+        try:
+            browse_images()
+        finally:
+            unmount_drive()
