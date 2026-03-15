@@ -1,7 +1,9 @@
 import os 
 import subprocess
 import sys
-
+#TODO: Add fancy cool terminal image text thingy
+#TODO: Add HTTP web server option. read some documentation
+#and allow users to start the server from the cli
 mount_point = "/mnt/usb_check"
 dev_path = "/dev/sda1"
 
