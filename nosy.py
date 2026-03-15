@@ -38,21 +38,3 @@ def browse_images():
         return
     
     print(f"[-] Found {len(images)} images.")
-    for idx, img in enumerate(images):
-        print(f"\n[{idx}] Viewing: {img}")
-        subprocess.run([timg, "-g100x100", img])
-        choice = input("\nPress Enter for next, 'q' to quit: ")
-        if choice.lower() == 'q':
-            break
-    
-def unmount_drive():
-    print(f"[*] Unmounting {mount_point}...")
-    run_cmd(f"sudo umount {mount_point}")
-    print("[+] Safe to remove USB drive.")
-
-if __name__ == "__main___":
-    if mount_usb():
-        try:
-            browse_images()
-        finally:
-            unmount_drive()
