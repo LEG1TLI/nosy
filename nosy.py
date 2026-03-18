@@ -1,11 +1,18 @@
 import os 
 import subprocess
 import sys
+import pyfiglet
 #TODO: Add fancy cool terminal image text thingy
 #TODO: Add HTTP web server option. read some documentation
 #and allow users to start the server from the cli
 mount_point = "/mnt/usb_check"
 dev_path = "/dev/sda1"
+
+def print_banner():
+    banner = pyfiglet.figlet_format("NOSY", font="slant")
+    print(banner)
+
+print_banner()
 
 def run_cmd(cmd):
     #Allows to run shell commands and capture output
@@ -33,7 +40,7 @@ def browse_images():
 
     for root, dirs, files in os.walk(mount_point):
         for file in files:
-            if files.lower.endswith(extensions):
+            if file.lower().endswith(extensions):
                 images.append(os.path.join(root, file))
     if not images:
         print("[-] No images located on drive.")
