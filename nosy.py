@@ -123,7 +123,7 @@ def browse_terminal(file_list):
                 kind = "TEXT"
             print(f"[{idx}] ({kind}) {path}")
 
-        choice = input("\nEnter file inde to open, r to rescan, or q to return: ").strip().lower()
+        choice = input("\nEnter file index to open, r to rescan, or q to return: ").strip().lower()
         if choice == "q":
             return
         elif choice == "r":
