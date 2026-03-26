@@ -178,7 +178,6 @@ def mounted_menu():
         print("[2] Start HTTP web server")
         print("[3] Unmount drive and exit")
         print("[4] Rescan drive for new files")
-    
 
         choice = input("Select an option: ").strip()
         if choice == "1":
