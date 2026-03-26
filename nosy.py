@@ -25,7 +25,7 @@ def prompt(msg, default = "n"):
         choice = default.lower()
     return choice in ("y", "yes")
 
-def inspect_udb():
+def inspect_usb():
     print(f"[*] Pre-mount device check for {dev_path}")
 
     if not os.path.exists(dev_path):
