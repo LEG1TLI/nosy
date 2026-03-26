@@ -72,7 +72,7 @@ def unmount_usb():
         print(f"[*] Unmounting {mount_point}...")
         result = run_cmd(f"sudo umount {shlex.quote(mount_point)}")
         if result.returncode == 0:
-            print("[+] Successfully unmounted. The drive is now safe to remoce.")
+            print("[+] Successfully unmounted. The drive is now safe to remove.")
         else:
             print(f"[!] Failed to unmount drive. Error: {result.stderr.strip()}")
 
