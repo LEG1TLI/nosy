@@ -40,12 +40,12 @@ def inspect_usb():
 
     all_ok = True
     for cmd in checks:
-        print(f"\n¤ {cmd}")
+        print(f"\n$ {cmd}")
         result = run_cmd(cmd)
         if result.stdout.strip():
             print(result.stdout.strip())
         if result.stderr.strip():
-            print(f"[!] Error: {result.stdout.strip()}")
+            print(f"[!] Error: {result.stderr.strip()}")
         if result.returncode != 0:
             all_ok = False
 
