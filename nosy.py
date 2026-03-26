@@ -4,6 +4,7 @@ import sys
 import pyfiglet
 import shlex
 import mimetypes
+import shutil
 
 mount_point = "/mnt/usb_check"
 dev_path = "/dev/sda1"
@@ -24,32 +25,35 @@ def prompt(msg, default = "n"):
         choice = default.lower()
     return choice in ("y", "yes")
 
-def inspect_usb():
-    print(f"[*] Pre-mount device inspection for {dev_path}")
+def inspect_udb():
+    print(f"[*] Pre-mount device check for {dev_path}")
 
     if not os.path.exists(dev_path):
-        print(f"[!] Device not found: {dev_path}. Are you sure it's connected?")
+        print(f"[!] Device at {dev_path} not found. Are you sure the device is connected?")
         return False
-    
+
     checks = [
-        f"lsblk -f {shlex.quote(dev_path)}",
+        f"lsblk {shlex.quote(dev_path)}",
         f"blkid {shlex.quote(dev_path)}",
         f"file -s {shlex.quote(dev_path)}"
     ]
 
-    for command in checks:
-        print(f"\n$ {command}")
-        result = run_cmd(command)
+    all_ok = True
+    for cmd in checks:
+        print(f"\n¤ {cmd}")
+        result = run_cmd(cmd)
         if result.stdout.strip():
             print(result.stdout.strip())
         if result.stderr.strip():
-            print(f"Error: {result.stderr.strip()}")
-        
-    return True
+            print(f"[!] Error: {result.stdout.strip()}")
+        if result.returncode != 0:
+            all_ok = False
+
+    return all_ok
 
 def mount_usb():
     if not os.path.exists(mount_point):
-        os.mkdirs(mount_point)
+        os.makedirs(mount_point, exist_ok=True)
 
     if os.path.ismount(mount_point):
         print(f"[!] {mount_point} is already mounted.")
@@ -85,7 +89,7 @@ def is_image(path):
 
 def is_text(path):
     mime, _ = mimetypes.guess_type(path)
-    if mime and mime.startwith("text"):
+    if mime and mime.startswith("text"):
         return True
     
     result = run_cmd(f"file -b --mime-type {shlex.quote(path)}")
@@ -135,7 +139,7 @@ def browse_terminal(file_list):
             continue
 
         selected = file_list[idx]
-        if is_image(selected):
+        if is_image(selected) and shutil.which("timg"):
             subprocess.run(["timg", "-g100x100", selected])
         elif is_text(selected):
             read_text_file(selected)
