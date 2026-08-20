@@ -5,7 +5,7 @@ import pyfiglet
 import shlex
 import mimetypes
 import shutil
-
+#mount point and device path. change as needed. This is set to the default device paths for raspberry pi 
 mount_point = "/mnt/usb_check"
 dev_path = "/dev/sda1"
 
@@ -52,6 +52,7 @@ def inspect_usb():
     return all_ok
 
 def mount_usb():
+    #mount the usb drive as read only and create directory if it isn't there
     if not os.path.exists(mount_point):
         os.makedirs(mount_point, exist_ok=True)
 
@@ -114,6 +115,7 @@ def browse_terminal(file_list):
         return
     
     while True:
+        #show amount of files found and their index, type and path
         print(f"\n[*] Found {len(file_list)} Files:")
         for idx, path in enumerate(file_list):
             kind = "OTHER"
@@ -148,7 +150,8 @@ def browse_terminal(file_list):
             print(f"[-] Non-image/text file: {selected}")
             if result.stdout.strip():
                 print(f"    Type: {result.stdout.strip()}")
-
+#start web server for easy viewing of files in browser
+#TODO: create fancy web interface for viewing files.
 def start_web_server():
     port_raw = input("Port for HTTP server (default 8000): ").strip()
     port = port_raw if port_raw else "8000"
