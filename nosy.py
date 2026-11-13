@@ -4,10 +4,13 @@ import sys
 import pyfiglet
 import shlex
 import mimetypes
+import glob
+import re
 import shutil
 #mount point and device path. change as needed. This is set to the default device paths for raspberry pi 
 mount_point = "/mnt/usb_check"
 dev_path = "/dev/sda1"
+usb = "/sys/bus/usb/devices"
 
 def print_banner():
     banner = pyfiglet.figlet_format("NOSY", font="slant")
@@ -15,9 +18,28 @@ def print_banner():
 
 print_banner()
 
-def run_cmd(cmd):
-    return subprocess.run(cmd, shell = True, capture_output = True, text = True)
+def run(cmd, **kw):
+    return subprocess.run(cmd, shell=True, text =True, **kw)
 
+def lock_usb():
+    saved = {}
+    for hub in glob.glog(f"{usb}/usb*"):
+        f = f"{hub}/authorized_default"
+        if not os.path.exists(f):
+            continue
+    saved[f] = open(f).read().strip()
+    #using 2 will only authorize the hardwired internal devices so u can fall back to 0 on older kernels 
+    if as_root(["tee", f], input="2").returncode != 0:
+        as_root(["tee", f], input="0")
+    return saved
+
+def as_root(cmd, **kw):
+    prefix = [] if os.getuid() == 0 else [shutil.which("sudo") or shutil.which("doas")]
+    return run(prefix + shlex.split(cmd), **kw)
+
+#defining for device nodes like 1-1.2 and that kinda thing.
+def usb_devices(): 
+    return {p for p in os.listdir(usb) if re.fullmatch(r"\d+-[\d.]+", p)}
 
 def prompt(msg, default = "n"):
     choice = input(msg).strip().lower()
@@ -41,7 +63,7 @@ def inspect_usb():
     all_ok = True
     for cmd in checks:
         print(f"\n$ {cmd}")
-        result = run_cmd(cmd)
+        result = run(cmd)
         if result.stdout.strip():
             print(result.stdout.strip())
         if result.stderr.strip():
