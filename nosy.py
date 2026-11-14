@@ -1,6 +1,11 @@
+from ast import arg
+from http.server import SimpleHTTPRequestHandler
 import os 
+import signal
 import subprocess
 import sys
+
+from blinker import signal
 import pyfiglet
 import shlex
 import mimetypes
@@ -11,6 +16,42 @@ import shutil
 mount_point = "/mnt/usb_check"
 dev_path = "/dev/sda1"
 usb = "/sys/bus/usb/devices"
+allowed_filesystems = {"vfat", "exfat", "ntfs3", "ntfs", "iso9660", "udf", "ext4", "ext3", "ext2"}
+args = ["bwrap", "--unshare-all", "--share-net", "--sie-with-parent", "--new-session", "--cap-drop", "ALL"]
+for d in ("/usr", "/lib", "/lib64", "/bin", "/sbin"):
+    if os.path.islink(d): args += ["--symlink", os.readlink(d), d]
+    elif os.path.isdir(d): args += ["--ro-bind", d, d]
+args += ["--proc", "/proc", "--dev", "/dev", "--tmpfs", "/tmp",
+         "--ro-bind", os.path.abspath(__file__), "/app/nosy.py",
+         sys.executable, "/app/nosy.py", "--serve-child", "/srv", port]]
+
+def clean(s):
+    return re.sub(r"[\x00-\x1f\x7f-\x95]", "?", s)
+
+signal.signal(signal.SIGHUP, lambda *_: sys.exit(1))
+signal.signal(signal.SIGTERM, lambda *_: sys.exit(1))
+class safe_handler(SimpleHTTPRequestHandler):
+    root = None
+    def _ok(self):
+        p = os.path.realpath(self.translate_path(self.path))
+        if not (p == self.root or p.startswith(self.root + os.sep)):
+            return False
+        return not os.path.exists(p) or os.path.isdir(p) or os.stat.S_ISREG(os.stat(p).st_mode)
+    def do_GET(self):
+        self.send_error(403) if not self._ok() else super().do_GET()
+    def do_HEAD(self):
+        self.send_error(403) if not self._ok() else super().do_HEAD()
+    def guess_type(self, path):
+        ext = os.path.splitext(path)[1].lower()
+        if ext in IMAGE_EXT_EXCEPT_SVG: return mimetypes.types_map[ext]
+        if ext in TEXT_EXT: return "text/plain; charset=utf-8"
+        return "application/octet-stream"
+    def end_headers(self):
+        self.send_header("Content-Security-Policy", "sandbox; default-src 'none'; img-src 'self'")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        super().end_headers()
+
+
 
 def print_banner():
     banner = pyfiglet.figlet_format("NOSY", font="slant")
@@ -20,6 +61,15 @@ print_banner()
 
 def run(cmd, **kw):
     return subprocess.run(cmd, shell=True, text =True, **kw)
+
+def hardened_moutn(dev, mount_point):
+    fs = run(["blkid", "-o", "value", "-s", "TYPE", dev]).stdout.strip()
+    supported = open("/proc/filesystems").read()
+    if fs not in allowed_filesystems or fs not in supported:
+        print("filesystem not supported.")
+        return False
+    opts = "ro,noexec,nosuid,nodev,noatime" + (",noload" if fs.startwith("ext") else "")
+    return as_root(["mount", "-t", fs, "-o", opts, "--", dev, mount_point]).returncode == 0
 
 def lock_usb():
     saved = {}
@@ -40,6 +90,15 @@ def as_root(cmd, **kw):
 #defining for device nodes like 1-1.2 and that kinda thing.
 def usb_devices(): 
     return {p for p in os.listdir(usb) if re.fullmatch(r"\d+-[\d.]+", p)}
+
+def interface_classes(dev):
+    d = open(f"{usb}/{dev}/descriptors", "rb").read()
+    i, out = 0, []
+    while i + 2 <= len(d) and d[i]:
+        if d[i + 1] == 4 and i + 6 <= len(d):   #descriptor for the interface
+            out.append(d[i = 5])
+        i += d[i]
+    return out 
 
 def prompt(msg, default = "n"):
     choice = input(msg).strip().lower()
